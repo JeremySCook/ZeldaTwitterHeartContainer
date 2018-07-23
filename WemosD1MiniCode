@@ -1,0 +1,146 @@
+// Instructables Internet of Things Class sample code
+// Circuit Triggers Internet Action
+// A button press is detected and stored in a feed
+// An LED is used as confirmation feedback
+//
+// Modified by Becky Stern 2017
+// based on the Adafruit IO Digital Input Example
+// Tutorial Link: https://learn.adafruit.com/adafruit-io-basics-digital-input
+//
+// Adafruit invests time and resources providing this open source code.
+// Please support Adafruit and open source hardware by purchasing
+// products from Adafruit!
+//
+// Written by Todd Treece for Adafruit Industries
+// Copyright (c) 2016 Adafruit Industries
+// Licensed under the MIT license.
+//
+// All text above must be included in any redistribution.
+//
+// Modified by Jeremy S. Cook to run Zelda Heart Container 7/2018
+// uses IFTT and Adafruit.io to respond to certain Internet actions.
+// Version uses Wemos D1 mini
+
+/************************ Adafruit IO Configuration *******************************/
+
+// visit io.adafruit.com if you need to create an account,
+// or if you need your Adafruit IO key.
+#define IO_USERNAME    "Your username"
+#define IO_KEY         "Your key"
+
+/******************************* WIFI Configuration **************************************/
+
+#define WIFI_SSID       "Your SSID"
+#define WIFI_PASS       "Your PW"
+
+#include "AdafruitIO_WiFi.h"
+AdafruitIO_WiFi io(IO_USERNAME, IO_KEY, WIFI_SSID, WIFI_PASS);
+
+/************************ Main Program Starts Here *******************************/
+#include <ESP8266WiFi.h>
+#include <AdafruitIO.h>
+#include <Adafruit_MQTT.h>
+#include <ArduinoHttpClient.h>
+
+// set up the 'command' feed
+AdafruitIO_Feed *command = io.feed("heart");
+
+// # of lights
+int lights = 0;
+
+void setup() {
+
+  // set button pin as an input
+  pinMode(BUILTIN_LED, OUTPUT);
+  pinMode(D1, OUTPUT);
+  pinMode(D2, OUTPUT);
+
+  // start the serial connection
+  Serial.begin(115200);
+
+  // connect to io.adafruit.com
+  Serial.print("Connecting to Adafruit IO");
+  io.connect();
+  
+  // set up a message handler for the 'command' feed.
+  // the handleMessage function (defined below)
+  // will be called whenever a message is
+  // received from adafruit io.
+  command->onMessage(handleMessage);
+
+  // wait for a connection
+  while(io.status() < AIO_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  // we are connected
+  Serial.println();
+  Serial.println(io.statusText());
+
+}
+
+void loop() {
+
+  // io.run(); is required for all sketches.
+  // it should always be present at the top of your loop
+  // function. it keeps the client connected to
+  // io.adafruit.com, and processes any incoming data.
+  io.run();
+  if (lights == 0) {
+    digitalWrite(D1, LOW);
+    digitalWrite(D2, LOW);
+    digitalWrite(BUILTIN_LED, HIGH); //for test, off
+    Serial.println("No lights on");
+    Serial.println(lights);
+  }
+  else if (lights == 1) {
+    digitalWrite(D1, HIGH);
+    digitalWrite(D2, LOW);
+    digitalWrite(BUILTIN_LED, HIGH); //for test, off
+    Serial.println("One light on");
+    Serial.println(lights);
+  }
+  else if (lights == 2) {
+    digitalWrite(D1, HIGH);
+    digitalWrite(D2, HIGH);
+    digitalWrite(BUILTIN_LED, LOW); //for test, on
+    Serial.println("both lights on");
+    Serial.println(lights);
+  }
+  delay(1000);
+}
+
+// this function is called whenever a 'command' message
+// is received from Adafruit IO. it was attached to
+// the command feed in the setup() function above.
+
+void handleMessage(AdafruitIO_Data *data) {
+
+  int command = data->toInt();
+  if (command == 0){ //increase light #
+    Serial.print("received - ");
+    Serial.println(command);
+    lights = 0;
+    Serial.print("lights status - ");
+    Serial.println(lights);
+  }
+  else if (command == 1){ //set light # = 1
+    Serial.print("received - ");
+    Serial.println(command);
+    lights = 1;
+    Serial.print("lights status - ");
+    Serial.println(lights);
+  }
+  else if (command == 2){//set light # = 2
+    Serial.print("received - ");
+    Serial.println(command);
+    lights = 2;
+    Serial.print("lights status - ");
+    Serial.println(lights);
+  }
+  else {
+    Serial.print("received - ");
+    Serial.println(command);
+  }
+}
